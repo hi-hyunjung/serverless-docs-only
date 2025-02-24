@@ -1,82 +1,30 @@
-service: serverless-aws-documentation-example
+service: test
+plugins:
+  - ./node_modules/serverless-docs-only
+
+custom:
+  documentation:
+    api:
+      info: ${file(./swagger/objects/info.yml)}
+      tags: ${file(./swagger/objects/tags.yml)}
+
+package:
+  individually: true # 각 함수 별로 패키징 하도록 설정
+  excludeDevDependencies: true
+
+frameworkVersion: '3'
 
 provider:
   name: aws
-  runtime: nodejs6.10
-  region: us-east-1
+  runtime: nodejs18.x
+  timeout: 30
+  logRetentionInDays: 90
+  region: ${self:custom.REGION.${self:provider.stage}.${param:area}}
+  stage: ${opt:stage, 'predev'}
 
-# Remember to reference the plugin
-plugins:
-  - serverless-aws-documentation
-
-# Let's keep this deployment lightweight. Probably not something you should copy
-package:
-  exclude:
-    - ./**
-  include:
-    - handler.js
-
-custom:
-  # You must have the documentation object
-  documentation:
-    # this is general info about the API
-    api:
-      info:
-        version: '2'
-        title: Example API
-        description: Some example API
-        termsOfService: https://www.google.com
-        contact:
-          name: The contact person
-          url: https://www.serverless.com/framework
-          email: some-fake@email.com
-        license:
-          name: The license
-          url: https://www.github.com
-      tags:
-        - name: Tag1
-          description: The first tag
-        - name: Tag2
-          description: That other tag that we all love
-    # Now we describe all the models that we use
-    models:
-      - name: MessageResponse
-        contentType: 'application/json'
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-      - name: DoSomethingRequest
-        contentType: 'application/json'
-        schema:
-          type: array
-          items:
-            type: string
-      - name: DoSomethingResponse
-        contentType: 'application/json'
-        schema:
-          type: object
-          properties:
-            result:
-              type: string
-            submittedItems:
-              type: number
-      - name: 400JsonResponse
-        contentType: 'application/json'
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-            statusCode:
-              type: number
-  commonModelSchemaFragments:
-    # defining common fragments means you can reference them with a single line
-    MethodResponse400Json:
-      statusCode: '400'
-      responseModels:
-        'application/json': 400JsonResponse
+  environment:
+    STAGE: ${self:provider.stage}
+    REGION: ${self:provider.region}
 
 functions:
   theRouter:
@@ -107,19 +55,6 @@ functions:
                   - name: link
                     description: describes other actions that can be taken
                     type: string
-      - http:
-          path: example/do-something
-          method: post
-          cors: true
-          documentation:
-            summary: Takes a request body
-            tags:
-              - Tag2
-            description: Demonstrates a POST method. We show a request body here and have multiple response models.
-            requestModels:
-              'application/json': DoSomethingRequest
-            methodResponses:
-              - statusCode: '200'
-                responseModels:
-                  'application/json': DoSomethingResponse
-              - ${self:custom.commonModelSchemaFragments.MethodResponse400Json}
+  #- ${file(src/business/function.yml)}
+  #- ${file(src/dashboard/function.yml)}
+  #- ${file(src/openapi/function.yml)}
