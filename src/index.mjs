@@ -1,13 +1,14 @@
 'use strict';
 
-import generateMeta from './swagger.mjs';
+import generateMeta from './swagger_meta.mjs';
 import fs from 'fs';
 import path from 'path';
+import yaml from 'js-yaml';
 import writeFileStream from './writer.mjs';
+import { loadServerlessFunctions, generatePaths } from './swagger_paths.mjs';
 
 class ServerlessDocsOnly {
   constructor(serverless, options) {
-    // serverless, options, provider 기본 설정 저장함
     this.serverless = serverless;
     this.options = options;
     this.provider = 'aws';
@@ -59,7 +60,19 @@ class ServerlessDocsOnly {
 
     this.serverless.cli.log('Custom Plugin: documentation key found');
     const swaggerMeta = generateMeta(this.customVars.documentation);
-    await writeFileStream(this.options.outputFile, swaggerMeta);
+    await writeFileStream(this.options.outputFile, swaggerMeta, false);
+
+    const components = this.customVars.documentation.components || {};
+    Object.keys(components).forEach((key) => {
+      if (typeof components[key] === 'string') {
+        components[key] = yaml.load(components[key]);
+      }
+    });
+    const apiTags = this.customVars.documentation?.api?.tags || [];
+
+    // paths 생성
+    const serverlessFunctions = loadServerlessFunctions('./serverless.yml');
+    generatePaths(serverlessFunctions, this.options.outputFile, components, apiTags);
   }
 }
 
