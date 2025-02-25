@@ -1,6 +1,6 @@
 service: test
 plugins:
-  - ./node_modules/serverless-docs-only
+  - ../src
 
 custom:
   documentation:
